@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.dist-info/
+*.egg-info/
+.buildozer/
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+venv_kivy/
+
+# Editors
+*.sublime-project
+*.sublime-workspace
+.vscode/
+
+# My stuff
+instance/
+.flaskenv
+
+# Ignore video files
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.flv
+*.wmv
+*.webm
+*.mpg
+*.mpeg
+*.3gp
+ 
+# Cookie
+cookies.txt
+
+# Django
+*.log
+*.pot
+db.sqlite3
+media/
+staticfiles/
+legacy/
+.DS_Store

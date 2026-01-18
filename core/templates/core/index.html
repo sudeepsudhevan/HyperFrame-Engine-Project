@@ -1,0 +1,451 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 2rem;">
+
+    <!-- Action Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="download-tab">
+            <i class="fab fa-youtube"></i> Download
+        </button>
+        <button class="tab-btn" data-tab="upload-tab">
+            <i class="fas fa-upload"></i> Upload
+        </button>
+        <button class="tab-btn" data-tab="process-tab">
+            <i class="fas fa-magic"></i> Process
+        </button>
+    </div>
+
+    <!-- Tab Contents -->
+
+    <!-- DOWNLOAD TAB -->
+    <div id="download-tab" class="tab-content active">
+        <form method="post" action="{% url 'download_video' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{yt_form.url.id_for_label}}">YouTube URL</label>
+                {{yt_form.url}}
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download Video
+            </button>
+        </form>
+    </div>
+
+    <!-- UPLOAD TAB -->
+    <div id="upload-tab" class="tab-content">
+        <form method="post" action="{% url 'upload_video' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Local Video File</label>
+                <div class="file-upload-wrapper">
+                    <input type="file" name="file" id="id_file" class="file-upload-input"
+                        onchange="updateFileName(this)">
+                    <label for="id_file" class="file-upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span id="file-name-display" style="font-weight: 500;">Click to select a video file or drag it
+                            here</span>
+                        <span style="font-size: 0.8rem; opacity: 0.6;">Supports .mp4, .mkv, .avi, .webm</span>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-arrow-up"></i> Start Upload
+            </button>
+        </form>
+    </div>
+
+    <!-- PROCESS TAB -->
+    <div id="process-tab" class="tab-content">
+        <form method="post" action="{% url 'process_video' %}" id="processForm">
+            {% csrf_token %}
+
+            <!-- File Selection -->
+            <div class="form-group">
+                <label>Select Video to Process</label>
+                <input type="hidden" name="selected_file" id="selectedFile">
+                <div class="file-list-container"
+                    style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                    {% for file in files %}
+                    <div class="file-item" onclick="selectFile(this, '{{file.path}}')">
+                        <div class="file-info">
+                            <i class="fas {% if file.source == 'YouTube' %}fa-youtube{% elif file.source == 'Local' %}fa-file-video{% else %}fa-film{% endif %}"
+                                style="color: {% if file.source == 'YouTube' %}#ef4444{% elif file.source == 'Local' %}#3b82f6{% else %}#10b981{% endif %}; flex-shrink: 0;"></i>
+                            <span class="text-truncate" style="font-weight: 500;">{{file.name}}</span>
+                        </div>
+                        <span
+                            style="font-size: 0.8rem; color: var(--muted-color); white-space: nowrap;">{{file.size}}</span>
+                    </div>
+                    {% empty %}
+                    <div style="padding: 1rem; color: var(--muted-color); text-align: center;">No files found. Download
+                        or upload one first.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Command Selection -->
+            <div class="form-group">
+                <label>Operation</label>
+                <!-- Hidden select to maintain form compatibility -->
+                <div style="display: none;">
+                    {{process_form.command}}
+                </div>
+
+                <div class="card-grid" id="operations-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    {% for op in operations_list %}
+                    <div class="operation-card glass-panel" data-value="{{op.key}}"
+                        onclick="selectCommand(this, '{{op.key}}')">
+                        <div style="color: var(--primary-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-microchip fa-lg"></i>
+                        </div>
+                        <div style="font-weight: 700; margin-bottom: 0.25rem;">{{op.name}}</div>
+                        <div style="font-size: 0.8rem; color: var(--muted-color); line-height: 1.4;">{{op.description}}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Dynamic Parameters -->
+            <div id="params-container" class="glass-panel" style="padding: 1rem; margin-bottom: 2rem; display: none;">
+                <h4 style="margin-top: 0; font-size: 1rem;">Parameters</h4>
+                <div class="card-grid">
+                    <div class="form-group param-group" data-for="trim_reencode trim_copy">
+                        <label>Start Time</label>
+                        {{process_form.start_time}}
+                    </div>
+                    <div class="form-group param-group" data-for="trim_reencode trim_copy">
+                        <label>End Time</label>
+                        {{process_form.end_time}}
+                    </div>
+                    <div class="form-group param-group" data-for="split_segments">
+                        <label>Segment Duration (s)</label>
+                        {{process_form.duration}}
+                    </div>
+                    <div class="form-group param-group" data-for="resize_video">
+                        <label>Target Width</label>
+                        {{process_form.width}}
+                    </div>
+                    <div class="form-group param-group" data-for="resize_video">
+                        <label>Target Height</label>
+                        {{process_form.height}}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem;">
+                <button type="submit" class="btn btn-primary" id="processBtn" disabled
+                    style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                    <i class="fas fa-play"></i> RUN OPERATION
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- Libraries -->
+<div class="glass-panel" style="margin-top: 2rem; padding: 2rem;">
+    <h2><i class="fas fa-folder-open"></i> Media Library</h2>
+    <div class="file-list">
+        {% for file in files %}
+        <div class="file-item">
+            <div class="file-info">
+                <div
+                    style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-file-video"></i>
+                </div>
+                <div style="min-width: 0;">
+                    <div class="text-truncate" style="font-weight: 600;">{{file.name}}</div>
+                    <div class="text-truncate"
+                        style="font-size: 0.8rem; color: var(--muted-color); white-space: nowrap;">{{file.path}}</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span class="badge"
+                    style="
+                    padding: 0.25rem 0.5rem; 
+                    border-radius: 4px; 
+                    font-size: 0.75rem; 
+                    background: {% if file.source == 'YouTube' %}rgba(239, 68, 68, 0.2); color: #fca5a5;{% elif file.source == 'Local' %}rgba(59, 130, 246, 0.2); color: #93c5fd;{% else %}rgba(16, 185, 129, 0.2); color: #6ee7b7;{% endif %}">
+                    {{file.source}}
+                </span>
+
+                <form method="post" action="{% url 'delete_video' %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="file_path" value="{{file.path}}">
+                    <button type="button" onclick="openDeleteModal(this)" class="btn btn-danger"
+                        style="padding: 0.5rem;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ffmpeg_commands|json_script:"commands-data" }}
+
+<!-- Progress Overlay HTML -->
+<div id="progressOverlay" class="progress-overlay">
+    <div class="progress-container">
+        <div class="processing-text" id="loadingText">Processing...</div>
+        <div class="processing-subtext" id="loadingSubtext">Please wait while operation completes</div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="progress-overlay" style="z-index: 2000; backdrop-filter: blur(8px);">
+    <div class="progress-container glass-panel" style="border: 1px solid rgba(239, 68, 68, 0.6); 
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); 
+                padding: 2.5rem; 
+                max-width: 400px; 
+                width: 90%;">
+
+        <div
+            style="width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+            <i class="fas fa-trash-alt fa-3x" style="color: #ef4444;"></i>
+        </div>
+
+        <h3 style="color: white; margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 600; text-align: center;">Delete
+            File?</h3>
+
+        <p style="color: #94a3b8; margin: 0 0 2rem 0; font-size: 0.95rem; line-height: 1.5; text-align: center;">
+            Are you sure you want to permanently delete this video?<br>This action cannot be undone.
+        </p>
+
+        <div style="display: flex; gap: 1rem; width: 100%;">
+            <button onclick="closeDeleteModal()" class="glass-btn hover-scale"
+                style="flex: 1; padding: 0.75rem; background: transparent; border: 1px solid #475569; color: #cbd5e1; font-weight: 500; min-width: 100px;">
+                Cancel
+            </button>
+            <button onclick="executeDelete()" class="glass-btn hover-scale"
+                style="flex: 1; padding: 0.75rem; background: #ef4444; border: none; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); min-width: 100px;">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Delete Modal Logic
+    const deleteModal = document.getElementById('deleteModal');
+    let deleteFormTarget = null;
+
+    function openDeleteModal(btn) {
+        // Find the form associated with this button
+        deleteFormTarget = btn.closest('form');
+        deleteModal.style.display = 'flex';
+        // Force reflow
+        deleteModal.offsetHeight;
+        deleteModal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        deleteModal.classList.remove('active');
+        setTimeout(() => {
+            deleteModal.style.display = 'none';
+            deleteFormTarget = null;
+        }, 300);
+    }
+
+    function executeDelete() {
+        if (deleteFormTarget) {
+            deleteFormTarget.submit();
+        }
+    }
+    // Pass python dict to JS
+    const COMMAND_INFO = JSON.parse(document.getElementById('commands-data').textContent);
+
+    // File Selection Logic
+    function selectFile(element, path) {
+        document.querySelectorAll('.file-item').forEach(e => e.classList.remove('selected'));
+        element.classList.add('selected');
+        document.getElementById('selectedFile').value = path;
+        checkProcessReady();
+    }
+
+    // Command Change Logic
+    const commandSelect = document.getElementById('command-select');
+    const paramsContainer = document.getElementById('params-container');
+
+    function selectCommand(element, value) {
+        // Update hidden select
+        commandSelect.value = value;
+
+        // Update UI
+        document.querySelectorAll('.operation-card').forEach(c => c.classList.remove('selected'));
+        element.classList.add('selected');
+
+        // Trigger parameter update
+        updateForm();
+    }
+
+    function updateForm() {
+        const cmd = commandSelect.value;
+        if (!cmd) {
+            paramsContainer.style.display = 'none';
+            return;
+        }
+
+        // Show/Hide params
+        let hasParams = false;
+        document.querySelectorAll('.param-group').forEach(group => {
+            const forCommands = group.dataset.for.split(' ');
+            if (forCommands.includes(cmd)) {
+                group.style.display = 'block';
+                hasParams = true;
+            } else {
+                group.style.display = 'none';
+            }
+        });
+
+        if (hasParams) {
+            paramsContainer.style.display = 'block';
+        } else {
+            paramsContainer.style.display = 'none';
+        }
+    }
+
+    // Initial call
+    updateForm();
+
+    // Enable button check
+    function checkProcessReady() {
+        const fileSelected = document.getElementById('selectedFile').value;
+        const btn = document.getElementById('processBtn');
+        if (fileSelected) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        }
+    }
+
+    // Custom File Input
+    function updateFileName(input) {
+        const display = document.getElementById('file-name-display');
+        if (input.files && input.files[0]) {
+            display.textContent = input.files[0].name;
+            display.style.color = 'var(--primary-color)';
+        } else {
+            display.textContent = 'Click to select a video file or drag it here';
+            display.style.color = 'inherit';
+        }
+    }
+
+    // Progress Overlay Logic
+    const overlay = document.getElementById('progressOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+
+    function showProgress(text, subtext) {
+        loadingText.textContent = text;
+        loadingSubtext.textContent = subtext;
+        overlay.style.display = 'flex';
+        // Force reflow
+        overlay.offsetHeight;
+        overlay.classList.add('active');
+    }
+
+    // Attach to forms
+    // Attach to forms
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            console.log("Form submitted: ", this.action);
+
+            // Special handling for Download form to support progress
+            if (this.action.includes('download')) {
+                console.log("Download form detected");
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const csrfToken = this.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // Show initial overlay
+                showProgress("Initializing Download", "Connecting to YouTube...");
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(async response => {
+                        const isJson = response.headers.get('content-type')?.includes('application/json');
+                        const data = isJson ? await response.json() : null;
+
+                        if (!response.ok) {
+                            const errorMsg = (data && data.msg) || response.statusText;
+                            throw new Error(errorMsg);
+                        }
+
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.task_id) {
+                            pollProgress(data.task_id);
+                        } else if (data.status === 'error') {
+                            throw new Error(data.msg);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        overlay.classList.remove('active');
+                        setTimeout(() => overlay.style.display = 'none', 300);
+                        alert("Download Failed: " + error.message);
+                    });
+
+                return;
+            }
+
+            // Normal handling for others (Upload/Process) - DISABLED OVERLAY by user request if no progress
+        });
+    });
+
+    function pollProgress(taskId) {
+        const progressBar = document.querySelector('.progress-bar-fill');
+
+        // Remove indeterminate animation for accurate progress
+        progressBar.style.animation = 'none';
+        progressBar.style.width = '0%';
+        progressBar.style.transition = 'width 0.3s ease';
+
+        const interval = setInterval(() => {
+            fetch(`/get-progress/${taskId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'processing') {
+                        // Update UI
+                        loadingText.textContent = `Downloading: ${data.percent}%`;
+                        loadingSubtext.textContent = `ETA: ${data.eta} - ${data.msg}`;
+                        progressBar.style.width = `${data.percent}%`;
+                    } else if (data.status === 'complete') {
+                        clearInterval(interval);
+                        loadingText.textContent = "Complete!";
+                        progressBar.style.width = '100%';
+                        setTimeout(() => {
+                            window.location.reload(); // Reload to show new file
+                        }, 1000);
+                    } else if (data.status === 'error') {
+                        clearInterval(interval);
+                        alert("Download Failed: " + data.msg);
+                        location.reload();
+                    }
+                })
+                .catch(err => console.error(err));
+        }, 1000);
+    }
+</script>
+
+{% endblock %}

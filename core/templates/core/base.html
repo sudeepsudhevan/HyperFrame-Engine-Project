@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperFrame Engine | Advanced Video Processing</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Toastr for notifications (optional, using Django messages for now but styled) -->
+</head>
+
+<body>
+    <div class="container">
+        <header class="glass-panel" style="padding: 1rem 2rem; border-radius: 16px;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="fas fa-bolt fa-2x" style="color: var(--primary-color);"></i>
+                <h1>HyperFrame Engine</h1>
+            </div>
+            <div>
+                <!-- Add user menu or settings here if needed -->
+            </div>
+        </header>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} glass-panel">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script>
+        // Tab Switching Logic
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.tab;
+
+                // Deactivate all
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // Activate target
+                button.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+    </script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+
+</html>
