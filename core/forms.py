@@ -7,7 +7,7 @@ class YouTubeDownloadForm(forms.Form):
         'placeholder': 'https://www.youtube.com/watch?v=...'
     }))
 
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 
 class VideoUploadForm(forms.Form):
     file = forms.FileField(
@@ -55,10 +55,14 @@ class ProcessVideoForm(forms.Form):
         ]
 
 class AddCommandForm(forms.Form):
-    key = forms.CharField(label="Command Key (no spaces)", widget=forms.TextInput(attrs={
-        'class': 'form-control',
-        'placeholder': 'my_custom_command'
-    }))
+    key = forms.CharField(
+        label="Command Key (no spaces)", 
+        validators=[RegexValidator(r'^[a-zA-Z0-9_]+$', 'Only alphanumeric characters and underscores are allowed.')],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'my_custom_command'
+        })
+    )
     name = forms.CharField(label="Display Name", widget=forms.TextInput(attrs={
         'class': 'form-control',
         'placeholder': 'My Custom Command'

@@ -146,7 +146,13 @@ def process_video(request):
             messages.error(request, "No file selected.")
             return redirect('index')
 
-        input_path = settings.MEDIA_ROOT / file_path_rel
+        input_path = (settings.MEDIA_ROOT / file_path_rel).resolve()
+        
+        # Security Check: Prevent Directory Traversal
+        if not str(input_path).startswith(str(settings.MEDIA_ROOT.resolve())):
+             messages.error(request, "Invalid file path.")
+             return redirect('index')
+
         if not input_path.exists():
              messages.error(request, "File not found.")
              return redirect('index')
@@ -208,7 +214,13 @@ def delete_video(request):
         file_path_rel = request.POST.get('file_path')
         if file_path_rel:
             try:
-                path = settings.MEDIA_ROOT / file_path_rel
+                path = (settings.MEDIA_ROOT / file_path_rel).resolve()
+                
+                # Security Check: Prevent Directory Traversal
+                if not str(path).startswith(str(settings.MEDIA_ROOT.resolve())):
+                    messages.error(request, "Invalid file path.")
+                    return redirect('index')
+
                 if path.exists():
                     path.unlink()
                     messages.success(request, "File deleted.")
