@@ -5,9 +5,10 @@ from pathlib import Path
 import shutil
 import time
 
-from .forms import YouTubeDownloadForm, VideoUploadForm, ProcessVideoForm
-from .utils import download_youtube_video, build_command, clean_filename, has_video_stream, FFMPEG_COMMANDS
+from .forms import YouTubeDownloadForm, VideoUploadForm, ProcessVideoForm, AddCommandForm
+from .utils import download_youtube_video, build_command, clean_filename, has_video_stream, get_all_commands, save_custom_command
 import subprocess
+import shlex
 
 def get_media_files():
     """Helper to list files in media directories."""
@@ -40,10 +41,13 @@ def index(request):
     upload_form = VideoUploadForm()
     process_form = ProcessVideoForm()
     
+    add_command_form = AddCommandForm()
+    
+    all_commands = get_all_commands()
 
     # Prepare operations list for UI
     operations_list = []
-    for key, val in FFMPEG_COMMANDS.items():
+    for key, val in all_commands.items():
         operations_list.append({
             'key': key,
             'name': key.replace('_', ' ').title(),
@@ -55,7 +59,8 @@ def index(request):
         'yt_form': yt_form,
         'upload_form': upload_form,
         'process_form': process_form,
-        'ffmpeg_commands': FFMPEG_COMMANDS, # Keep for JS lookup if needed
+        'add_command_form': add_command_form,
+        'ffmpeg_commands': all_commands, # Keep for JS lookup if needed
         'operations_list': operations_list,
     }
     return render(request, 'core/index.html', context)
@@ -208,4 +213,24 @@ def delete_video(request):
                     messages.success(request, "File deleted.")
             except Exception as e:
                 messages.error(request, f"Delete failed: {str(e)}")
+    return redirect('index')
+
+def add_custom_command(request):
+    if request.method == 'POST':
+        form = AddCommandForm(request.POST)
+        if form.is_valid():
+            key = form.cleaned_data['key']
+            description = form.cleaned_data['description']
+            command_str = form.cleaned_data['command_str']
+            
+            # Simple parsing of command string into list
+            # logic: shlex.split to handle quotes
+            try:
+                command_list = shlex.split(command_str)
+                save_custom_command(key, command_list, description)
+                messages.success(request, f"Command '{form.cleaned_data['name']}' added successfully!")
+            except Exception as e:
+                messages.error(request, f"Failed to parse command: {e}")
+        else:
+             messages.error(request, "Invalid command form.")
     return redirect('index')

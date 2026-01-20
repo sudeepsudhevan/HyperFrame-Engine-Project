@@ -1,0 +1,29 @@
+{
+    "slow_mo_smooth": {
+        "command": [
+            "ffmpeg",
+            "-y",
+            "-i",
+            "{input}",
+            "-vf",
+            "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsfm=1",
+            "-c:v",
+            "libx264",
+            "-crf",
+            "20",
+            "{output}"
+        ],
+        "description": "AI-style smooth slow motion using frame interpolation"
+    },
+    "make_gif": {
+        "command": [
+            "ffmpeg",
+            "-i",
+            "{input}",
+            "-vf",
+            "fps=10,scale=320:-1:flags=lanczos",
+            "{output}"
+        ],
+        "description": "Make Gif"
+    }
+}

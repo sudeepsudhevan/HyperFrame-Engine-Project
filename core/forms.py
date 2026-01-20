@@ -1,5 +1,5 @@
 from django import forms
-from .utils import FFMPEG_COMMANDS
+
 
 class YouTubeDownloadForm(forms.Form):
     url = forms.CharField(label="YouTube URL", widget=forms.URLInput(attrs={
@@ -13,11 +13,7 @@ class VideoUploadForm(forms.Form):
     }))
 
 class ProcessVideoForm(forms.Form):
-    COMMAND_CHOICES = [
-        (key, config['description']) for key, config in FFMPEG_COMMANDS.items()
-    ]
-    
-    command = forms.ChoiceField(choices=COMMAND_CHOICES, widget=forms.Select(attrs={
+    command = forms.ChoiceField(widget=forms.Select(attrs={
         'class': 'form-control',
         'id': 'command-select'
     }))
@@ -42,4 +38,31 @@ class ProcessVideoForm(forms.Form):
     height = forms.IntegerField(required=False, label="Height", widget=forms.NumberInput(attrs={
         'class': 'form-control command-param',
         'placeholder': '1080'
+    }))
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .utils import get_all_commands
+        commands = get_all_commands()
+        self.fields['command'].choices = [
+            (key, config['description']) for key, config in commands.items()
+        ]
+
+class AddCommandForm(forms.Form):
+    key = forms.CharField(label="Command Key (no spaces)", widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'my_custom_command'
+    }))
+    name = forms.CharField(label="Display Name", widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'My Custom Command'
+    }))
+    description = forms.CharField(label="Description", widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Does something cool'
+    }))
+    command_str = forms.CharField(label="Command String", widget=forms.Textarea(attrs={
+        'class': 'form-control',
+        'placeholder': 'ffmpeg -i {input} ... {output}',
+        'rows': 3
     }))

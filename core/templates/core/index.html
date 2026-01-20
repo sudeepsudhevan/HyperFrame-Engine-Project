@@ -85,7 +85,13 @@
 
             <!-- Command Selection -->
             <div class="form-group">
-                <label>Operation</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label style="margin-bottom: 0;">Operation</label>
+                    <button type="button" onclick="openAddCommandModal()" class="glass-btn hover-scale"
+                        style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <i class="fas fa-plus"></i> Add New
+                    </button>
+                </div>
                 <!-- Hidden select to maintain form compatibility -->
                 <div style="display: none;">
                     {{process_form.command}}
@@ -200,6 +206,79 @@
         </div>
     </div>
 </div>
+
+<!-- Add Command Modal -->
+<div id="addCommandModal" class="progress-overlay" style="z-index: 2000; backdrop-filter: blur(8px);">
+    <div class="progress-container glass-panel" style="
+            border: 1px solid rgba(59, 130, 246, 0.4); 
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); 
+            padding: 2rem; 
+            max-width: 500px; 
+            width: 90%;">
+
+        <h3 style="color: white; margin: 0 0 1.5rem 0; font-size: 1.5rem; font-weight: 600;">
+            <i class="fas fa-terminal" style="color: #60a5fa; margin-right: 0.5rem;"></i> Add Custom Command
+        </h3>
+
+        <form method="post" action="{% url 'add_custom_command' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Key (Unique ID)</label>
+                {{add_command_form.key}}
+                <small style="color: var(--muted-color);">Example: my_gif_maker, slow_motion_2x</small>
+            </div>
+
+            <div class="form-group">
+                <label>Display Name</label>
+                {{add_command_form.name}}
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                {{add_command_form.description}}
+            </div>
+
+            <div class="form-group">
+                <label>Command String</label>
+                {{add_command_form.command_str}}
+                <div
+                    style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 0.8rem; border-left: 3px solid #60a5fa;">
+                    <strong style="color: #93c5fd;">Variables:</strong> {input}, {output}<br>
+                    <strong style="color: #93c5fd;">Example:</strong> ffmpeg -y -i {input} -vf scale=320:-1 {output}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="button" onclick="closeAddCommandModal()" class="glass-btn hover-scale"
+                    style="flex: 1; padding: 0.75rem; background: transparent; border: 1px solid #475569; color: #cbd5e1;">
+                    Cancel
+                </button>
+                <button type="submit" class="glass-btn hover-scale"
+                    style="flex: 1; padding: 0.75rem; background: #2563eb; border: none; color: white;">
+                    Add Command
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Add Command Modal Logic
+    const addCommandModal = document.getElementById('addCommandModal');
+
+    function openAddCommandModal() {
+        addCommandModal.style.display = 'flex';
+        addCommandModal.offsetHeight; // Force reflow
+        addCommandModal.classList.add('active');
+    }
+
+    function closeAddCommandModal() {
+        addCommandModal.classList.remove('active');
+        setTimeout(() => {
+            addCommandModal.style.display = 'none';
+        }, 300);
+    }
+</script>
 
 <!-- Delete Confirmation Modal -->
 <div id="deleteModal" class="progress-overlay" style="z-index: 2000; backdrop-filter: blur(8px);">

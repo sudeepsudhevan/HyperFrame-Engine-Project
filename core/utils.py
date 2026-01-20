@@ -3,11 +3,14 @@ import re
 from pathlib import Path
 from django.conf import settings
 
+import json
+import os
+
 # =========================
 # FFmpeg Commands
 # =========================
 
-FFMPEG_COMMANDS = {
+BASE_FFMPEG_COMMANDS = {
     "base_best_quality": {
         "command": [
             "ffmpeg", "-y", "-i", "{input}", "-map", "0:v:0", "-map", "0:a:0?",
@@ -89,11 +92,39 @@ FFMPEG_COMMANDS = {
     }
 }
 
+def load_custom_commands():
+    """Load custom commands from the JSON file."""
+    custom_file_path = Path("custom_commands.json")
+    if not custom_file_path.exists():
+        return {}
+    try:
+        with open(custom_file_path, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+def get_all_commands():
+    """Merge base and custom commands."""
+    commands = BASE_FFMPEG_COMMANDS.copy()
+    commands.update(load_custom_commands())
+    return commands
+
+def save_custom_command(key, command_list, description):
+    """Save a new custom command to the JSON file."""
+    custom_commands = load_custom_commands()
+    custom_commands[key] = {
+        "command": command_list,
+        "description": description
+    }
+    with open("custom_commands.json", 'w') as f:
+        json.dump(custom_commands, f, indent=4)
+
 def build_command(profile: str, **kwargs) -> list:
     """Build an FFmpeg command from a profile."""
-    if profile not in FFMPEG_COMMANDS:
+    all_commands = get_all_commands()
+    if profile not in all_commands:
         raise ValueError(f"Unknown profile: {profile}")
-    template = FFMPEG_COMMANDS[profile]["command"]
+    template = all_commands[profile]["command"]
     return [arg.format(**kwargs) for arg in template]
 
 
