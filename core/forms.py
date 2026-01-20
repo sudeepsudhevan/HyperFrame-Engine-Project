@@ -7,10 +7,16 @@ class YouTubeDownloadForm(forms.Form):
         'placeholder': 'https://www.youtube.com/watch?v=...'
     }))
 
+from django.core.validators import FileExtensionValidator
+
 class VideoUploadForm(forms.Form):
-    file = forms.FileField(label="Upload Video", widget=forms.ClearableFileInput(attrs={
-        'class': 'form-control'
-    }))
+    file = forms.FileField(
+        label="Upload Video", 
+        validators=[FileExtensionValidator(allowed_extensions=['mp4', 'mkv', 'avi', 'webm', 'mov', 'flv', 'wav', 'mp3', 'aac', 'm4a'])],
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control'
+        })
+    )
 
 class ProcessVideoForm(forms.Form):
     command = forms.ChoiceField(widget=forms.Select(attrs={
