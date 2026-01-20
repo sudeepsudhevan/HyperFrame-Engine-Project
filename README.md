@@ -22,6 +22,12 @@ Perform advanced video processing tasks on both downloaded and uploaded files:
 - **Glassmorphism Design**: Modern, translucent interface.
 - **Responsive**: Works beautifully on all screen sizes.
 - **Interactive**: Real-time feedback and dynamic form parameters.
+- **Mobile Optimized**: Modals and layouts adapted for smaller screens.
+
+### 🚀 Advanced Capabilities
+- **Custom Commands**: Add your own FFmpeg commands directly from the UI.
+- **GPU Acceleration**: Auto-detection of NVIDIA GPUs for ultra-fast processing (H.264/H.265 NVENC).
+- **Smart Library**: Auto-filters non-media files and includes a manual refresh option.
 
 ## Prerequisites
 
