@@ -89,6 +89,79 @@ BASE_FFMPEG_COMMANDS = {
             "ffmpeg", "-y", "-i", "{input}", "-c", "copy", "{output}"
         ],
         "description": "Change container format without re-encoding"
+    },
+
+    # =========================
+    # 🎯 BASELINE (GPU ACCELERATED)
+    # =========================
+    "base_gpu_quality": {
+        "command": [
+            "ffmpeg", "-y",
+            "-hwaccel", "cuda",
+            "-i", "{input}",
+            "-c:v", "h264_nvenc",
+            "-preset", "p6",      # p1-p7 (p6 is high quality)
+            "-rc", "vbr",         # Variable Bitrate
+            "-cq", "19",          # Similar to CRF
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            "{output}"
+        ],
+        "description": "GPU accelerated H.264 encoding (High Quality)"
+    },
+
+    # =========================
+    # ✂️ TRIMMING (GPU)
+    # =========================
+    "trim_gpu_reencode": {
+        "command": [
+            "ffmpeg", "-y",
+            "-hwaccel", "cuda",
+            "-ss", "{start}", "-to", "{end}",
+            "-i", "{input}",
+            "-c:v", "h264_nvenc",
+            "-preset", "p4",
+            "-cq", "19",
+            "-c:a", "aac",
+            "{output}"
+        ],
+        "description": "Fast GPU-based frame-accurate trimming"
+    },
+
+    # =========================
+    # 📦 COMPRESSION (GPU)
+    # =========================
+    "compress_gpu_h265": {
+        "command": [
+            "ffmpeg", "-y",
+            "-hwaccel", "cuda",
+            "-i", "{input}",
+            "-c:v", "hevc_nvenc", # Use H.265 GPU encoder
+            "-preset", "p6",
+            "-rc", "vbr",
+            "-cq", "24",          # Higher number = more compression
+            "-c:a", "aac",
+            "{output}"
+        ],
+        "description": "Ultra-fast H.265 compression via GPU"
+    },
+
+    # =========================
+    # 📐 RESIZE / SCALE (GPU)
+    # =========================
+    "resize_gpu": {
+        "command": [
+            "ffmpeg", "-y",
+            "-hwaccel", "cuda",
+            "-hwaccel_output_format", "cuda", # Keep frame in GPU memory
+            "-i", "{input}",
+            "-vf", "scale_cuda={width}:{height}", # Resize on the GPU chip
+            "-c:v", "h264_nvenc",
+            "-preset", "p4",
+            "-c:a", "aac",
+            "{output}"
+        ],
+        "description": "Resize video entirely on GPU (no CPU bottleneck)"
     }
 }
 
@@ -103,10 +176,35 @@ def load_custom_commands():
     except (json.JSONDecodeError, IOError):
         return {}
 
+def has_nvidia_gpu() -> bool:
+    """Checks if NVIDIA GPU (CUDA) is available for FFmpeg."""
+    try:
+        # Check for hardware acceleration support
+        result = subprocess.run(["ffmpeg", "-v", "error", "-hwaccels"], capture_output=True, text=True)
+        if "cuda" not in result.stdout:
+             return False
+        
+        # Double check by listing encoders (sometimes hwaccel is listed but encoder lib missing)
+        result_enc = subprocess.run(["ffmpeg", "-v", "error", "-encoders"], capture_output=True, text=True)
+        return "nvenc" in result_enc.stdout
+    except FileNotFoundError:
+        return False
+
 def get_all_commands():
-    """Merge base and custom commands."""
+    """Merge base and custom commands, filtering GPU ones if not available."""
     commands = BASE_FFMPEG_COMMANDS.copy()
     commands.update(load_custom_commands())
+    
+    # Filter GPU commands if no GPU
+    if not has_nvidia_gpu():
+        # Filter out keys containing 'gpu' or descriptions mentioning 'GPU'
+        # to avoid users crashing the app
+        filtered_commands = {}
+        for k, v in commands.items():
+            if "gpu" not in k.lower() and "cuda" not in str(v.get("command", "")).lower():
+                 filtered_commands[k] = v
+        return filtered_commands
+        
     return commands
 
 def save_custom_command(key, command_list, description):
