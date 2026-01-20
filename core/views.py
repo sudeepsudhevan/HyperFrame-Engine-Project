@@ -18,8 +18,9 @@ def get_media_files():
     def add_files(folder_name, source_type):
         path = settings.MEDIA_ROOT / folder_name
         path.mkdir(parents=True, exist_ok=True)
+        valid_extensions = {'.mp4', '.mkv', '.avi', '.webm', '.mov', '.flv', '.wav', '.mp3', '.aac', '.m4a'}
         for f in path.iterdir():
-            if f.is_file() and f.name != ".gitignore":
+            if f.is_file() and f.suffix.lower() in valid_extensions:
                 files.append({
                     'name': f.name,
                     'path': str(f.relative_to(settings.MEDIA_ROOT)).replace('\\', '/'), # relative path for display/selection
