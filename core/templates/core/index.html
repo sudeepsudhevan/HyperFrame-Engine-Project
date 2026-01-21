@@ -92,6 +92,15 @@
                         <i class="fas fa-plus"></i> Add New
                     </button>
                 </div>
+                <!-- Operation Search -->
+                <div style="margin-bottom: 1rem; position: relative;">
+                    <i class="fas fa-search"
+                        style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted-color);"></i>
+                    <input type="text" id="operationSearch" placeholder="Search operations..." class="form-control"
+                        style="padding-left: 2.5rem; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);"
+                        oninput="filterOperations(this.value)">
+                </div>
+
                 <!-- Hidden select to maintain form compatibility -->
                 <div style="display: none;">
                     {{process_form.command}}
@@ -390,6 +399,23 @@
 
         // Trigger parameter update
         updateForm();
+    }
+
+    function filterOperations(query) {
+        query = query.toLowerCase().trim();
+        const cards = document.querySelectorAll('.operation-card');
+
+        cards.forEach(card => {
+            // Safe selection in case structure changes, but targeting specific divs is fine for now
+            // We can search the whole text content of the card for simplicity
+            const content = card.textContent.toLowerCase();
+
+            if (content.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
     }
 
     function updateForm() {
