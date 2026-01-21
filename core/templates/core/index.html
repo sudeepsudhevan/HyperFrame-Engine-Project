@@ -208,6 +208,7 @@
 
 {% block scripts %}
 {{ffmpeg_commands|json_script:"commands-data" }}
+{{ command_params|json_script:"params-data" }}
 
 <!-- Progress Overlay HTML -->
 <div id="progressOverlay" class="progress-overlay">
@@ -357,6 +358,15 @@
     }
     // Pass python dict to JS
     const COMMAND_INFO = JSON.parse(document.getElementById('commands-data').textContent);
+    // New: Pass params map to JS
+    const COMMAND_PARAMS = JSON.parse(document.getElementById('params-data').textContent);
+
+    // Helper to get params for a command (from new map or fallback)
+    function getRequiredParams(cmd) {
+        // The json_script tag outputs a script element ID. We need to parse it.
+        // Actually, let's fix the passing mechanism below.
+        return [];
+    }
 
     // File Selection Logic
     function selectFile(element, path) {
@@ -384,28 +394,62 @@
 
     function updateForm() {
         const cmd = commandSelect.value;
+        const cardGrid = paramsContainer.querySelector('.card-grid');
+
         if (!cmd) {
             paramsContainer.style.display = 'none';
             return;
         }
 
-        // Show/Hide params
-        let hasParams = false;
-        document.querySelectorAll('.param-group').forEach(group => {
-            const forCommands = group.dataset.for.split(' ');
-            if (forCommands.includes(cmd)) {
-                group.style.display = 'block';
-                hasParams = true;
+        // 1. Get required params for this command
+        // We need to access the data from the script tag rendered by Django
+        const paramsMap = JSON.parse(document.getElementById('params-data').textContent);
+        const requiredParams = paramsMap[cmd] || [];
+
+        // 2. Reset: Hide all existing params first
+        document.querySelectorAll('.param-group').forEach(el => el.style.display = 'none');
+
+        // 3. Remove any previously created dynamic inputs
+        document.querySelectorAll('.dynamic-param').forEach(el => el.remove());
+
+        if (requiredParams.length === 0) {
+            paramsContainer.style.display = 'none';
+            return;
+        }
+
+        paramsContainer.style.display = 'block';
+
+        // 4. Show/Create inputs for each required param
+        requiredParams.forEach(param => {
+            // Check if we have a standard input for this (by name attribute mostly, but we don't have name easily accessibly on divs)
+            // Strategy: Check if there's a django field with id `id_{param}`
+            const existingInput = document.getElementById(`id_${param}`);
+
+            if (existingInput) {
+                // Find its parent .param-group and show it
+                const group = existingInput.closest('.param-group');
+                if (group) group.style.display = 'block';
             } else {
-                group.style.display = 'none';
+                // DYNAMIC CREATION
+                const div = document.createElement('div');
+                div.className = 'form-group param-group dynamic-param';
+                div.style.display = 'block';
+
+                const label = document.createElement('label');
+                // Capitalize first letter
+                label.innerText = param.charAt(0).toUpperCase() + param.slice(1);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = param; // This will start appearing in request.POST
+                input.className = 'form-control command-param';
+                input.placeholder = `Enter value for {${param}}`;
+
+                div.appendChild(label);
+                div.appendChild(input);
+                cardGrid.appendChild(div);
             }
         });
-
-        if (hasParams) {
-            paramsContainer.style.display = 'block';
-        } else {
-            paramsContainer.style.display = 'none';
-        }
     }
 
     // Initial call

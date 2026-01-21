@@ -217,6 +217,25 @@ def save_custom_command(key, command_list, description):
     with open("custom_commands.json", 'w') as f:
         json.dump(custom_commands, f, indent=4)
 
+def extract_parameters(command_list):
+    """Extracts required parameters e.g. {width} from a command list."""
+    params = set()
+    for arg in command_list:
+        # Find all {var} patterns
+        matches = re.findall(r"\{([a-zA-Z0-9_]+)\}", arg)
+        for m in matches:
+            if m not in ['input', 'output', 'output_pattern']: # Ignore standard internal vars
+                params.add(m)
+    return list(params)
+
+def get_command_params_map():
+    """Returns a map of command_key -> list of params."""
+    all_cmds = get_all_commands()
+    mapping = {}
+    for key, val in all_cmds.items():
+        mapping[key] = extract_parameters(val['command'])
+    return mapping
+
 def build_command(profile: str, **kwargs) -> list:
     """Build an FFmpeg command from a profile."""
     all_commands = get_all_commands()

@@ -55,6 +55,10 @@ def index(request):
             'description': val['description']
         })
 
+    # Get params map
+    from .utils import get_command_params_map
+    command_params = get_command_params_map()
+
     context = {
         'files': files,
         'yt_form': yt_form,
@@ -63,6 +67,7 @@ def index(request):
         'add_command_form': add_command_form,
         'ffmpeg_commands': all_commands, # Keep for JS lookup if needed
         'operations_list': operations_list,
+        'command_params': command_params,
     }
     return render(request, 'core/index.html', context)
 
@@ -182,17 +187,31 @@ def process_video(request):
             output_filename = f"{clean_name}_{cmd_key}_{timestamp}{ext}"
             output_path = output_folder / output_filename
             
-            # kwargs
+            # Dynamic Kwargs: Fetch ANY param required by the command
+            from .utils import get_command_params_map
+            cmd_map = get_command_params_map()
+            required_params = cmd_map.get(cmd_key, [])
+            
             kwargs = {
                 "input": str(input_path),
                 "output": str(output_path),
-                "start": form.cleaned_data.get('start_time'),
-                "end": form.cleaned_data.get('end_time'),
-                "duration": form.cleaned_data.get('duration'),
-                "width": form.cleaned_data.get('width') or 1920,
-                "height": form.cleaned_data.get('height') or 1080,
-                "factors": form.cleaned_data.get('factor') or 2.0,
             }
+            
+            # Populate from form (standard fields) or raw POST (dynamic fields)
+            for param in required_params:
+                # Try standard form field first (cleaned data)
+                val = form.cleaned_data.get(param)
+                
+                # If None/Empty, try raw POST data (for dynamic fields)
+                if val is None:
+                    val = request.POST.get(param)
+                
+                # Default fallbacks if still empty (Prevents None error)
+                if not val:
+                    defaults = {'width': 1920, 'height': 1080, 'factors': 2.0}
+                    val = defaults.get(param, "")
+                
+                kwargs[param] = val
             
             # Special case for split_segments output_pattern
             if cmd_key == "split_segments":
