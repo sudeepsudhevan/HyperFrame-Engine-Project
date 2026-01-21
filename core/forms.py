@@ -4,7 +4,8 @@ from django import forms
 class YouTubeDownloadForm(forms.Form):
     url = forms.CharField(label="YouTube URL", widget=forms.URLInput(attrs={
         'class': 'form-control',
-        'placeholder': 'https://www.youtube.com/watch?v=...'
+        'placeholder': 'https://www.youtube.com/watch?v=...',
+        'autocomplete': 'off'
     }))
 
 from django.core.validators import FileExtensionValidator, RegexValidator
@@ -44,6 +45,10 @@ class ProcessVideoForm(forms.Form):
     height = forms.IntegerField(required=False, label="Height", widget=forms.NumberInput(attrs={
         'class': 'form-control command-param',
         'placeholder': '1080'
+    }))
+    factor = forms.FloatField(required=False, label="Speed Factor (PTS Multiplier)", widget=forms.NumberInput(attrs={
+        'class': 'form-control command-param',
+        'placeholder': '2.0 (Slow Motion)'
     }))
     
     def __init__(self, *args, **kwargs):

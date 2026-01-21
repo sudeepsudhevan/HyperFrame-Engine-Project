@@ -189,8 +189,9 @@ def process_video(request):
                 "start": form.cleaned_data.get('start_time'),
                 "end": form.cleaned_data.get('end_time'),
                 "duration": form.cleaned_data.get('duration'),
-                "width": form.cleaned_data.get('width'),
-                "height": form.cleaned_data.get('height'),
+                "width": form.cleaned_data.get('width') or 1920,
+                "height": form.cleaned_data.get('height') or 1080,
+                "factors": form.cleaned_data.get('factor') or 2.0,
             }
             
             # Special case for split_segments output_pattern
