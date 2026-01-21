@@ -1,0 +1,108 @@
+<!-- PROCESS TAB -->
+<div id="process-tab" class="tab-content">
+    <form method="post" action="{% url 'process_video' %}" id="processForm">
+        {% csrf_token %}
+
+        <!-- File Selection -->
+        <div class="form-group">
+            <label>Select Video to Process</label>
+            <input type="hidden" name="selected_file" id="selectedFile">
+            <div class="file-list-container"
+                style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                {% for file in files %}
+                <div class="file-item" onclick="selectFile(this, '{{file.path}}')">
+                    <div class="file-info">
+                        <i class="fas {% if file.source == 'YouTube' %}fa-youtube{% elif file.source == 'Local' %}fa-file-video{% else %}fa-film{% endif %}"
+                            style="color: {% if file.source == 'YouTube' %}#ef4444{% elif file.source == 'Local' %}#3b82f6{% else %}#10b981{% endif %}; flex-shrink: 0;"></i>
+                        <span class="text-truncate" style="font-weight: 500;">{{file.name}}</span>
+                    </div>
+                    <span
+                        style="font-size: 0.8rem; color: var(--muted-color); white-space: nowrap;">{{file.size}}</span>
+                </div>
+                {% empty %}
+                <div style="padding: 1rem; color: var(--muted-color); text-align: center;">No files found. Download
+                    or upload one first.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Command Selection -->
+        <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <label style="margin-bottom: 0;">Operation</label>
+                <button type="button" onclick="openAddCommandModal()" class="glass-btn hover-scale"
+                    style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i class="fas fa-plus"></i> Add New
+                </button>
+            </div>
+            <!-- Operation Search -->
+            <div style="margin-bottom: 1rem; position: relative;">
+                <i class="fas fa-search"
+                    style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted-color);"></i>
+                <input type="text" id="operationSearch" placeholder="Search operations..." class="form-control"
+                    style="padding-left: 2.5rem; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);"
+                    oninput="filterOperations(this.value)">
+            </div>
+
+            <!-- Hidden select to maintain form compatibility -->
+            <div style="display: none;">
+                {{process_form.command}}
+            </div>
+
+            <div class="card-grid" id="operations-grid"
+                style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                {% for op in operations_list %}
+                <div class="operation-card glass-panel" data-value="{{op.key}}"
+                    onclick="selectCommand(this, '{{op.key}}')">
+                    <div style="color: var(--primary-color); margin-bottom: 0.5rem;">
+                        <i class="fas fa-microchip fa-lg"></i>
+                    </div>
+                    <div style="font-weight: 700; margin-bottom: 0.25rem;">{{op.name}}</div>
+                    <div style="font-size: 0.8rem; color: var(--muted-color); line-height: 1.4;">{{op.description}}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Dynamic Parameters -->
+        <div id="params-container" class="glass-panel" style="padding: 1rem; margin-bottom: 2rem; display: none;">
+            <h4 style="margin-top: 0; font-size: 1rem;">Parameters</h4>
+            <div class="card-grid">
+                <div class="form-group param-group" data-for="trim_reencode trim_copy">
+                    <label>Start Time</label>
+                    {{process_form.start_time}}
+                </div>
+                <div class="form-group param-group" data-for="trim_reencode trim_copy">
+                    <label>End Time</label>
+                    {{process_form.end_time}}
+                </div>
+                <div class="form-group param-group" data-for="split_segments">
+                    <label>Segment Duration (s)</label>
+                    {{process_form.duration}}
+                </div>
+                <div class="form-group param-group" data-for="resize_video resize_gpu">
+                    <label>Target Width</label>
+                    {{process_form.width}}
+                </div>
+                <div class="form-group param-group" data-for="resize_video resize_gpu">
+                    <label>Target Height</label>
+                    {{process_form.height}}
+                </div>
+                <div class="form-group param-group" data-for="slow_mo_gpu">
+                    <label>Speed Factor (PTS)</label>
+                    {{process_form.factor}}
+                    <small style="display:block; color:var(--muted-color); font-size:0.8rem; margin-top:0.25rem;">2.0 =
+                        0.5x Speed</small>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 3rem;">
+            <button type="submit" class="btn btn-primary" id="processBtn" disabled
+                style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                <i class="fas fa-play"></i> RUN OPERATION
+            </button>
+        </div>
+    </form>
+</div>

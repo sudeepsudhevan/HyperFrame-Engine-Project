@@ -1,0 +1,13 @@
+<!-- DOWNLOAD TAB -->
+<div id="download-tab" class="tab-content active">
+    <form method="post" action="{% url 'download_video' %}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="{{yt_form.url.id_for_label}}">YouTube URL</label>
+            {{yt_form.url}}
+        </div>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-download"></i> Download Video
+        </button>
+    </form>
+</div>

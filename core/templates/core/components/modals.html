@@ -1,0 +1,147 @@
+<!-- Progress Overlay HTML -->
+<div id="progressOverlay" class="progress-overlay">
+    <div class="progress-container">
+        <div class="processing-text" id="loadingText">Processing...</div>
+        <div class="processing-subtext" id="loadingSubtext">Please wait while operation completes</div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Command Modal -->
+<div id="addCommandModal" class="progress-overlay" style="z-index: 2000; backdrop-filter: blur(8px);">
+    <div class="progress-container glass-panel" style="
+            border: 1px solid rgba(59, 130, 246, 0.4); 
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); 
+            padding: 2rem; 
+            max-width: 500px; 
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;">
+
+        <h3 style="color: white; margin: 0 0 1.5rem 0; font-size: 1.5rem; font-weight: 600;">
+            <i class="fas fa-terminal" style="color: #60a5fa; margin-right: 0.5rem;"></i> Add Custom Command
+        </h3>
+
+        <form method="post" action="{% url 'add_custom_command' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Key (Unique ID)</label>
+                {{add_command_form.key}}
+                <small style="color: var(--muted-color);">Example: my_gif_maker, slow_motion_2x</small>
+            </div>
+
+            <div class="form-group">
+                <label>Display Name</label>
+                {{add_command_form.name}}
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                {{add_command_form.description}}
+            </div>
+
+            <div class="form-group">
+                <label>Command String</label>
+                {{add_command_form.command_str}}
+                <div
+                    style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 0.8rem; border-left: 3px solid #60a5fa;">
+                    <strong style="color: #93c5fd;">Variables:</strong> {input}, {output}<br>
+                    <strong style="color: #93c5fd;">Example:</strong> ffmpeg -y -i {input} -vf scale=320:-1 {output}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="button" onclick="closeAddCommandModal()" class="glass-btn hover-scale"
+                    style="flex: 1; padding: 0.75rem; background: transparent; border: 1px solid #475569; color: #cbd5e1;">
+                    Cancel
+                </button>
+                <button type="submit" class="glass-btn hover-scale"
+                    style="flex: 1; padding: 0.75rem; background: #2563eb; border: none; color: white;">
+                    Add Command
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Add Command Modal Logic
+    const addCommandModal = document.getElementById('addCommandModal');
+
+    function openAddCommandModal() {
+        addCommandModal.style.display = 'flex';
+        addCommandModal.offsetHeight; // Force reflow
+        addCommandModal.classList.add('active');
+    }
+
+    function closeAddCommandModal() {
+        addCommandModal.classList.remove('active');
+        setTimeout(() => {
+            addCommandModal.style.display = 'none';
+        }, 300);
+    }
+</script>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="progress-overlay" style="z-index: 2000; backdrop-filter: blur(8px);">
+    <div class="progress-container glass-panel" style="border: 1px solid rgba(239, 68, 68, 0.6); 
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); 
+                padding: 2.5rem; 
+                max-width: 400px; 
+                width: 90%;">
+
+        <div
+            style="width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+            <i class="fas fa-trash-alt fa-3x" style="color: #ef4444;"></i>
+        </div>
+
+        <h3 style="color: white; margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 600; text-align: center;">Delete
+            File?</h3>
+
+        <p style="color: #94a3b8; margin: 0 0 2rem 0; font-size: 0.95rem; line-height: 1.5; text-align: center;">
+            Are you sure you want to permanently delete this video?<br>This action cannot be undone.
+        </p>
+
+        <div style="display: flex; gap: 1rem; width: 100%;">
+            <button onclick="closeDeleteModal()" class="glass-btn hover-scale"
+                style="flex: 1; padding: 0.75rem; background: transparent; border: 1px solid #475569; color: #cbd5e1; font-weight: 500; min-width: 100px;">
+                Cancel
+            </button>
+            <button onclick="executeDelete()" class="glass-btn hover-scale"
+                style="flex: 1; padding: 0.75rem; background: #ef4444; border: none; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); min-width: 100px;">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Delete Modal Logic
+    const deleteModal = document.getElementById('deleteModal');
+    let deleteFormTarget = null;
+
+    function openDeleteModal(btn) {
+        // Find the form associated with this button
+        deleteFormTarget = btn.closest('form');
+        deleteModal.style.display = 'flex';
+        // Force reflow
+        deleteModal.offsetHeight;
+        deleteModal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        deleteModal.classList.remove('active');
+        setTimeout(() => {
+            deleteModal.style.display = 'none';
+            deleteFormTarget = null;
+        }, 300);
+    }
+
+    function executeDelete() {
+        if (deleteFormTarget) {
+            deleteFormTarget.submit();
+        }
+    }
+</script>

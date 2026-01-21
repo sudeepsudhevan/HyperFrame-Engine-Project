@@ -1,0 +1,250 @@
+{{ffmpeg_commands|json_script:"commands-data" }}
+{{ command_params|json_script:"params-data" }}
+
+<script>
+    // Pass python dict to JS
+    const COMMAND_INFO = JSON.parse(document.getElementById('commands-data').textContent);
+    // New: Pass params map to JS
+    const COMMAND_PARAMS = JSON.parse(document.getElementById('params-data').textContent);
+
+    // Helper to get params for a command (from new map or fallback)
+    function getRequiredParams(cmd) {
+        // The json_script tag outputs a script element ID. We need to parse it.
+        // Actually, let's fix the passing mechanism below.
+        return [];
+    }
+
+    // File Selection Logic
+    function selectFile(element, path) {
+        document.querySelectorAll('.file-item').forEach(e => e.classList.remove('selected'));
+        element.classList.add('selected');
+        document.getElementById('selectedFile').value = path;
+        checkProcessReady();
+    }
+
+    // Command Change Logic
+    const commandSelect = document.getElementById('command-select');
+    const paramsContainer = document.getElementById('params-container');
+
+    function selectCommand(element, value) {
+        // Update hidden select
+        commandSelect.value = value;
+
+        // Update UI
+        document.querySelectorAll('.operation-card').forEach(c => c.classList.remove('selected'));
+        element.classList.add('selected');
+
+        // Trigger parameter update
+        updateForm();
+    }
+
+    function filterOperations(query) {
+        query = query.toLowerCase().trim();
+        const cards = document.querySelectorAll('.operation-card');
+
+        cards.forEach(card => {
+            // Safe selection in case structure changes, but targeting specific divs is fine for now
+            // We can search the whole text content of the card for simplicity
+            const content = card.textContent.toLowerCase();
+
+            if (content.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function updateForm() {
+        const cmd = commandSelect.value;
+        const cardGrid = paramsContainer.querySelector('.card-grid');
+
+        if (!cmd) {
+            paramsContainer.style.display = 'none';
+            return;
+        }
+
+        // 1. Get required params for this command
+        // We need to access the data from the script tag rendered by Django
+        const paramsMap = JSON.parse(document.getElementById('params-data').textContent);
+        const requiredParams = paramsMap[cmd] || [];
+
+        // 2. Reset: Hide all existing params first
+        document.querySelectorAll('.param-group').forEach(el => el.style.display = 'none');
+
+        // 3. Remove any previously created dynamic inputs
+        document.querySelectorAll('.dynamic-param').forEach(el => el.remove());
+
+        if (requiredParams.length === 0) {
+            paramsContainer.style.display = 'none';
+            return;
+        }
+
+        paramsContainer.style.display = 'block';
+
+        // 4. Show/Create inputs for each required param
+        requiredParams.forEach(param => {
+            // Check if we have a standard input for this (by name attribute mostly, but we don't have name easily accessibly on divs)
+            // Strategy: Check if there's a django field with id `id_{param}`
+            const existingInput = document.getElementById(`id_${param}`);
+
+            if (existingInput) {
+                // Find its parent .param-group and show it
+                const group = existingInput.closest('.param-group');
+                if (group) group.style.display = 'block';
+            } else {
+                // DYNAMIC CREATION
+                const div = document.createElement('div');
+                div.className = 'form-group param-group dynamic-param';
+                div.style.display = 'block';
+
+                const label = document.createElement('label');
+                // Capitalize first letter
+                label.innerText = param.charAt(0).toUpperCase() + param.slice(1);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = param; // This will start appearing in request.POST
+                input.className = 'form-control command-param';
+                input.placeholder = `Enter value for {${param}}`;
+
+                div.appendChild(label);
+                div.appendChild(input);
+                cardGrid.appendChild(div);
+            }
+        });
+    }
+
+    // Initial call
+    updateForm();
+
+    // Enable button check
+    function checkProcessReady() {
+        const fileSelected = document.getElementById('selectedFile').value;
+        const btn = document.getElementById('processBtn');
+        if (fileSelected) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        }
+    }
+
+    // Custom File Input
+    function updateFileName(input) {
+        const display = document.getElementById('file-name-display');
+        if (input.files && input.files[0]) {
+            display.textContent = input.files[0].name;
+            display.style.color = 'var(--primary-color)';
+        } else {
+            display.textContent = 'Click to select a video file or drag it here';
+            display.style.color = 'inherit';
+        }
+    }
+
+    // Progress Overlay Logic
+    const overlay = document.getElementById('progressOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+
+    function showProgress(text, subtext) {
+        loadingText.textContent = text;
+        loadingSubtext.textContent = subtext;
+        overlay.style.display = 'flex';
+        // Force reflow
+        overlay.offsetHeight;
+        overlay.classList.add('active');
+    }
+
+    // Attach to forms
+    // Attach to forms
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            console.log("Form submitted: ", this.action);
+
+            // Special handling for Download form to support progress
+            if (this.action.includes('download')) {
+                console.log("Download form detected");
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const csrfToken = this.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // Show initial overlay
+                showProgress("Initializing Download", "Connecting to YouTube...");
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(async response => {
+                        const isJson = response.headers.get('content-type')?.includes('application/json');
+                        const data = isJson ? await response.json() : null;
+
+                        if (!response.ok) {
+                            const errorMsg = (data && data.msg) || response.statusText;
+                            throw new Error(errorMsg);
+                        }
+
+                        return data;
+                    })
+                    .then(data => {
+                        if (data.task_id) {
+                            pollProgress(data.task_id);
+                        } else if (data.status === 'error') {
+                            throw new Error(data.msg);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        overlay.classList.remove('active');
+                        setTimeout(() => overlay.style.display = 'none', 300);
+                        alert("Download Failed: " + error.message);
+                    });
+
+                return;
+            }
+
+            // Normal handling for others (Upload/Process) - DISABLED OVERLAY by user request if no progress
+        });
+    });
+
+    function pollProgress(taskId) {
+        const progressBar = document.querySelector('.progress-bar-fill');
+
+        // Remove indeterminate animation for accurate progress
+        progressBar.style.animation = 'none';
+        progressBar.style.width = '0%';
+        progressBar.style.transition = 'width 0.3s ease';
+
+        const interval = setInterval(() => {
+            fetch(`/get-progress/${taskId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'processing') {
+                        // Update UI
+                        loadingText.textContent = `Downloading: ${data.percent}%`;
+                        loadingSubtext.textContent = `ETA: ${data.eta} - ${data.msg}`;
+                        progressBar.style.width = `${data.percent}%`;
+                    } else if (data.status === 'complete') {
+                        clearInterval(interval);
+                        loadingText.textContent = "Complete!";
+                        progressBar.style.width = '100%';
+                        setTimeout(() => {
+                            window.location.reload(); // Reload to show new file
+                        }, 1000);
+                    } else if (data.status === 'error') {
+                        clearInterval(interval);
+                        alert("Download Failed: " + data.msg);
+                        location.reload();
+                    }
+                })
+                .catch(err => console.error(err));
+        }, 1000);
+    }
+</script>

@@ -1,0 +1,21 @@
+<!-- UPLOAD TAB -->
+<div id="upload-tab" class="tab-content">
+    <form method="post" action="{% url 'upload_video' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Local Video File</label>
+            <div class="file-upload-wrapper">
+                <input type="file" name="file" id="id_file" class="file-upload-input" onchange="updateFileName(this)">
+                <label for="id_file" class="file-upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span id="file-name-display" style="font-weight: 500;">Click to select a video file or drag it
+                        here</span>
+                    <span style="font-size: 0.8rem; opacity: 0.6;">Supports .mp4, .mkv, .avi, .webm</span>
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <i class="fas fa-arrow-up"></i> Start Upload
+        </button>
+    </form>
+</div>
